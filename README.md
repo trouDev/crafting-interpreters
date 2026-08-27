@@ -1,4 +1,4 @@
-# crafting-interpreters
+# Crafting-Interpreters
 
 This repository contains my personal implementations of the tree-walk interpreter (**jlox**) and the bytecode virtual machine (**clox**) from Bob Nystrom's excellent book, [*Crafting Interpreters*](https://craftinginterpreters.com).
 
