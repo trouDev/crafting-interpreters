@@ -1,0 +1,1 @@
+I would find it hard to use a programming language without a continue to use in my loops. I've heard that if you need to use break and continue you are a bad programmer but I feel like its a pretty darn useful tool and that person was stupid.

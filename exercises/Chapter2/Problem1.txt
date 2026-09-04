@@ -1,0 +1,6 @@
+I chose rust for my language to analyze
+
+Compiler -> https://github.com/rust-lang/rust/blob/main/compiler/rustc_attr_parsing/src/parser.rs 
+lexer -> https://github.com/rust-lang/rust/blob/main/compiler/rustc_lexer/src/lib.rs
+
+They seem to be handwritten as they are .rs files and they also have no mention of yacc or lex.

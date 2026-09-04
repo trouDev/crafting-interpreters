@@ -1,0 +1,1 @@
+One edge case that I saw was relating to function naming. When you name two functions the same thing, the second declaration of the function simply overwrites the first one causing it to pretend like the first never existed. 

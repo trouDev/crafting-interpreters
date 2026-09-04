@@ -1,0 +1,1 @@
+Even though LISP is translated to C by the compiler, there are some structures and logic that are not able to be directly translated. As the C is ran, the LISP compiler is also run to handle things that the C compiler is not able to understand such as the native READ-EVAL-PRINT-LOOP that exists in LISP.

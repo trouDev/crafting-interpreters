@@ -1,0 +1,1 @@
+JIT compilers are great because it speeds up running code and you can also run programs without building them! One reason not to use JIT compilation would be because it takes extra memory to compile code this way. If you were running a program on something like a microcontroller it would not have enough resources to run and compile the program. 
