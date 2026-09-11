@@ -1,0 +1,1 @@
+One example of when you wouldn't want to ignore comments would be the Javadoc generator. This looks at commends in certain places and creates documentation for your code by parsing the comments. 

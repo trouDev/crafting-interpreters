@@ -1,0 +1,5 @@
+In CoffeeScript and Ruby, you can omit paranthesis from function calls. In addition to this, you can call lambda expressions without the paranthesis, and this is when the space is extra important. 
+
+The C preprocessor relies on spaces to distinguish function macros from simple macros. #define MACRO1 (p) (p) and
+#define MACRO2(p) (p) will do completely different things.
+

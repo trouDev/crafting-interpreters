@@ -1,0 +1,1 @@
+When a language is regular, it means that it doesn't require any sort of memory to evaluate its statements. Languages like python are not regular because they require memory of the whitespace to block code segments instead of just reading tokens like curly braces. Most modern programming languages are too complex to be regular languages.
