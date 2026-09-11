@@ -1,0 +1,13 @@
+expression → comma ;
+comma      → equality ( "," equality )* ;
+equality   → comparison ( ( "!=" | "==" ) comparison )* ;
+comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+term       → factor ( ( "-" | "+" ) factor )* ;
+factor     → unary ( ( "/" | "*" ) unary )* ;
+unary      → ( "!" | "-" | "--" | "++" ) unary
+           | postfix ;
+postfix    → primary ( "--" | ++" )* ;
+primary    → NUMBER | STRING | "true" | "false" | "nil"
+           | "(" expression ")" ;
+
+I honestly have no idea how to do this so im just going to hope that it wont come back up later...

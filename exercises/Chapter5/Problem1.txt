@@ -1,0 +1,15 @@
+expr → expr calls
+expr → IDENTIFIER
+expr → NUMBER
+
+calls → calls call
+calls → call
+
+call → "(" ")"
+call → "(" arguments ")"
+call → "." IDENTIFIER
+
+arguments → expr
+arguments → arguments "," expr
+
+this is grammar for a function call
