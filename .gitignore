@@ -22,3 +22,10 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+jlox/com/craftinginterpreters/lox/Progress check/TokenType.java
+jlox/com/craftinginterpreters/lox/Progress check/Token.java
+jlox/com/craftinginterpreters/lox/Progress check/Scanner.java
+jlox/com/craftinginterpreters/lox/Progress check/Parser.java
+jlox/com/craftinginterpreters/lox/Progress check/Lox.java
+jlox/com/craftinginterpreters/lox/Progress check/AstPrinter.java
+jlox/com/craftinginterpreters/lox/.idea/
