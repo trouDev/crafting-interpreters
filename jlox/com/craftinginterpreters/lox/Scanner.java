@@ -85,6 +85,7 @@ class Scanner {
                             advance();
                             break;
                         }
+                        if (peek() == '\n') line++;
                         advance();
                     }
                 } else {
