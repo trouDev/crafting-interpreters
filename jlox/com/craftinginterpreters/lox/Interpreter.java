@@ -6,6 +6,7 @@ class Interpreter implements Expr.Visitor<Object>,
         Stmt.Visitor<Void> {
     private Environment environment = new Environment();
     private static Object uninitialized = new Object();
+    private static class Break extends RuntimeException {}
 
     // chapter 8 question 1
     String interpret(Expr expression) {
@@ -22,6 +23,11 @@ class Interpreter implements Expr.Visitor<Object>,
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.value;
+    }
+
+    @Override
+    public Void visitBreakStmt(Stmt.Break stmt) {
+        throw new Break();
     }
 
     @Override
@@ -171,9 +177,14 @@ class Interpreter implements Expr.Visitor<Object>,
 
     @Override
     public Void visitWhileStmt(Stmt.While stmt) {
-        while (isTruthy(evaluate(stmt.condition))) {
-            execute(stmt.body);
+        try {
+            while (isTruthy(evaluate(stmt.condition))) {
+                execute(stmt.body);
+            }
+        } catch (Break breakException) {
+            // Exit the loop.
         }
+
         return null;
     }
 

@@ -9,6 +9,7 @@ class Parser {
     private final List<Token> tokens;
     private int current = 0;
     private static class ParseError extends RuntimeException {}
+    private int loopDepth = 0;
 
     // chapter 8 problem 1
     private boolean allowExpression;
@@ -67,6 +68,7 @@ class Parser {
         if (match(PRINT)) return printStatement();
         if (match(WHILE)) return whileStatement();
         if (match(LEFT_BRACE)) return new Stmt.Block(block());
+        if (match(BREAK)) return breakStatement();
 
         return expressionStatement();
     }
@@ -94,7 +96,13 @@ class Parser {
             increment = expression();
         }
         consume(RIGHT_PAREN, "Expect ')' after for clauses.");
-        Stmt body = statement();
+        loopDepth++;
+        Stmt body;
+        try {
+            body = statement();
+        } finally {
+            loopDepth--;
+        }
 
         if (increment != null) {
             body = new Stmt.Block(
@@ -127,6 +135,20 @@ class Parser {
         return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
+    private Stmt breakStatement() {
+        Token keyword = previous();
+
+        if (loopDepth == 0) {
+            throw error(
+                    keyword,
+                    "Can't use 'break' outside of a loop."
+            );
+        }
+
+        consume(SEMICOLON, "Expect ';' after 'break'.");
+        return new Stmt.Break();
+    }
+
     private Stmt printStatement() {
         Expr value = expression();
         consume(SEMICOLON, "Expect ';' after value.");
@@ -149,7 +171,14 @@ class Parser {
         consume(LEFT_PAREN, "Expect '(' after 'while'.");
         Expr condition = expression();
         consume(RIGHT_PAREN, "Expect ')' after condition.");
-        Stmt body = statement();
+
+        loopDepth++;
+        Stmt body;
+        try {
+            body = statement();
+        } finally {
+            loopDepth--;
+        }
 
         return new Stmt.While(condition, body);
     }

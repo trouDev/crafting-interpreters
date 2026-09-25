@@ -14,8 +14,6 @@ abstract class Expr {
   }
   static class Assign extends Expr {
     Assign(Token name, Expr value) {
-      this.name = name;
-      this.value = value;
     }
 
     @Override
@@ -28,9 +26,6 @@ abstract class Expr {
   }
   static class Binary extends Expr {
     Binary(Expr left, Token operator, Expr right) {
-      this.left = left;
-      this.operator = operator;
-      this.right = right;
     }
 
     @Override
@@ -44,7 +39,6 @@ abstract class Expr {
   }
   static class Grouping extends Expr {
     Grouping(Expr expression) {
-      this.expression = expression;
     }
 
     @Override
@@ -56,7 +50,6 @@ abstract class Expr {
   }
   static class Literal extends Expr {
     Literal(Object value) {
-      this.value = value;
     }
 
     @Override
@@ -68,9 +61,6 @@ abstract class Expr {
   }
   static class Logical extends Expr {
     Logical(Expr left, Token operator, Expr right) {
-      this.left = left;
-      this.operator = operator;
-      this.right = right;
     }
 
     @Override
@@ -84,8 +74,6 @@ abstract class Expr {
   }
   static class Unary extends Expr {
     Unary(Token operator, Expr right) {
-      this.operator = operator;
-      this.right = right;
     }
 
     @Override
@@ -98,7 +86,6 @@ abstract class Expr {
   }
   static class Variable extends Expr {
     Variable(Token name) {
-      this.name = name;
     }
 
     @Override

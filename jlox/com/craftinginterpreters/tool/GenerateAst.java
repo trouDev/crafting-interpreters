@@ -78,32 +78,37 @@ public class GenerateAst {
     }
 
     private static void defineType(
-            PrintWriter writer, String baseName,
-            String className, String fieldList) {
+            PrintWriter writer,
+            String baseName,
+            String className,
+            String fieldList) {
+
         writer.println("  static class " + className + " extends "
                 + baseName + " {");
 
         // Constructor.
         writer.println("    " + className + "(" + fieldList + ") {");
 
-        // Store parameters in fields.
-        /*
-        String[] fields = fieldList.split(", ");
-        for (String field : fields) {
-            String name = field.split(" ")[1];
-            writer.println("      this." + name + " = " + name + ";");
-        } */
-        // Store parameters in fields.
+        // Split the fields, unless this class has no fields.
         String[] fields;
-        if (fieldList.isEmpty()) {
+
+        if (fieldList.trim().isEmpty()) {
             fields = new String[0];
         } else {
             fields = fieldList.split(", ");
         }
 
+        // Store constructor parameters in fields.
+        for (String field : fields) {
+            String[] parts = field.trim().split("\\s+");
+            String name = parts[parts.length - 1];
+
+            writer.println("      this." + name + " = " + name + ";");
+        }
+
         writer.println("    }");
 
-// Visitor pattern.
+        // Visitor pattern.
         writer.println();
         writer.println("    @Override");
         writer.println("    <R> R accept(Visitor<R> visitor) {");
@@ -113,6 +118,7 @@ public class GenerateAst {
 
         // Fields.
         writer.println();
+
         for (String field : fields) {
             writer.println("    final " + field + ";");
         }
