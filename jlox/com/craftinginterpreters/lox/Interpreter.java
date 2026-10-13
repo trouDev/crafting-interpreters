@@ -266,16 +266,14 @@ class Interpreter implements Expr.Visitor<Object>,
     public Void visitFunctionStmt(Stmt.Function stmt) {
         LoxFunction function = new LoxFunction(stmt, environment,
                 false);
-        environment.define(fnName, new LoxFunction(fnName, stmt.function, environment));
+        environment.define(stmt.name.lexeme, function);
         return null;
     }
 
-    /*
     @Override
     public Object visitFunctionExpr(Expr.Function expr) {
-        return new LoxFunction(null, expr, environment);
+        return new LoxFunction(expr, environment, false);
     }
-    */
 
     @Override
     public Void visitIfStmt(Stmt.If stmt) {

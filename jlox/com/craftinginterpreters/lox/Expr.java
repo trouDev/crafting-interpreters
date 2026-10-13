@@ -5,7 +5,6 @@ import java.util.List;
 abstract class Expr {
   interface Visitor<R> {
     R visitFunctionExpr(Function expr);
-    R visitFunctionExpr(Function expr);
     R visitAssignExpr(Assign expr);
     R visitBinaryExpr(Binary expr);
     R visitCallExpr(Call expr);
@@ -32,20 +31,6 @@ abstract class Expr {
 
     final List<Token> parameters;
     final List<Stmt> body;
-  }
-  static class Function extends Expr {
-    Function(Token name, Expr.Function function) {
-      this.name = name;
-      this.function = function;
-    }
-
-    @Override
-    <R> R accept(Visitor<R> visitor) {
-      return visitor.visitFunctionExpr(this);
-    }
-
-    final Token name;
-    final Expr.Function function;
   }
   static class Assign extends Expr {
     Assign(Token name, Expr value) {

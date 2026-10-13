@@ -1,6 +1,10 @@
 package com.craftinginterpreters.lox;
 
 class AstPrinter implements Expr.Visitor<String> {
+    @Override
+    public String visitFunctionExpr(Expr.Function expr) {
+        return "<fn>";
+    }
     String print(Expr expr) {
         return expr.accept(this);
     }
@@ -13,11 +17,6 @@ class AstPrinter implements Expr.Visitor<String> {
     @Override
     public String visitAssignExpr(Expr.Assign expr) {
         return parenthesize("= " + expr.name.lexeme, expr.value);
-    }
-
-    @Override
-    public String visitFunctionExpr(Expr.Function expr) {
-        return "<fn>";
     }
 
     @Override

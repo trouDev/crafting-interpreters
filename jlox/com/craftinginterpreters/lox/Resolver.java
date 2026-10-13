@@ -49,6 +49,21 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         currentFunction = enclosingFunction;
     }
 
+    private void resolveFunction(Expr.Function function) {
+        FunctionType enclosingFunction = currentFunction;
+        currentFunction = FunctionType.FUNCTION;
+
+        beginScope();
+        for (Token param : function.parameters) {
+            declare(param);
+            define(param);
+        }
+        resolve(function.body);
+        endScope();
+
+        currentFunction = enclosingFunction;
+    }
+
     private void beginScope() {
         scopes.push(new HashMap<String, Variable>());
     }
@@ -132,11 +147,13 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
         if (stmt.superclass != null) {
             beginScope();
-            scopes.peek().put("super", true);
+            scopes.peek().put("super",
+                    new Variable(null, VariableState.READ));
         }
 
         beginScope();
-        scopes.peek().put("this", true);
+        scopes.peek().put("this",
+                new Variable(null, VariableState.READ));
 
         for (Stmt.Function method : stmt.methods) {
             FunctionType declaration = FunctionType.METHOD;
@@ -178,6 +195,15 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         define(stmt.name);
 
         resolveFunction(stmt, FunctionType.FUNCTION);
+        return null;
+    }
+
+    @Override
+    public Void visitForStmt(Stmt.For stmt) {
+        if (stmt.initializer != null) resolve(stmt.initializer);
+        if (stmt.condition != null) resolve(stmt.condition);
+        resolve(stmt.body);
+        if (stmt.increment != null) resolve(stmt.increment);
         return null;
     }
 
@@ -231,15 +257,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     @Override
-    public Void visitForStmt(Stmt.For stmt) {
-        if (stmt.initializer != null) resolve(stmt.initializer);
-        if (stmt.condition != null) resolve(stmt.condition);
-        resolve(stmt.body);
-        if (stmt.increment != null) resolve(stmt.increment);
-        return null;
-    }
-
-    @Override
     public Void visitAssignExpr(Expr.Assign expr) {
         resolve(expr.value);
         resolveLocal(expr, expr.name, false);
@@ -267,6 +284,12 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitGetExpr(Expr.Get expr) {
         resolve(expr.object);
+        return null;
+    }
+
+    @Override
+    public Void visitFunctionExpr(Expr.Function expr) {
+        resolveFunction(expr);
         return null;
     }
 
@@ -307,7 +330,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
                     "Can't use 'super' in a class with no superclass.");
         }
 
-        resolveLocal(expr, expr.keyword);
+        resolveLocal(expr, expr.keyword, true);
         return null;
     }
 
@@ -319,7 +342,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             return null;
         }
 
-        resolveLocal(expr, expr.keyword);
+        resolveLocal(expr, expr.keyword, true);
         return null;
     }
 

@@ -167,10 +167,8 @@ class Parser {
         Token keyword = previous();
 
         if (loopDepth == 0) {
-            throw error(
-                    keyword,
-                    "Can't use 'continue' outside of a loop."
-            );
+            throw error(keyword,
+                    "Can't use 'continue' outside of a loop.");
         }
 
         consume(SEMICOLON, "Expect ';' after 'continue'.");
@@ -235,7 +233,8 @@ class Parser {
 
     private Stmt.Function function(String kind) {
         Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
-        return new Stmt.Function(name, functionBody(kind));
+        Expr.Function body = functionBody(kind);
+        return new Stmt.Function(name, body.parameters, body.body);
     }
 
     private Expr.Function functionBody(String kind) {
