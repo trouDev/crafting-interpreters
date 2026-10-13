@@ -292,7 +292,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             Lox.error(expr.keyword,
                     "Can't use 'super' in a class with no superclass.");
         }
-        
+
         resolveLocal(expr, expr.keyword);
         return null;
     }
