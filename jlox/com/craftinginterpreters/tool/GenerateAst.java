@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class GenerateAst {
+
     public static void main(String[] args) throws IOException {
         if (args.length != 1) {
             System.err.println("Usage: generate_ast <output directory>");
@@ -13,10 +14,30 @@ public class GenerateAst {
         }
         String outputDir = args[0];
         defineAst(outputDir, "Expr", Arrays.asList(
+                "Function : List<Token> parameters, List<Stmt> body",
+                "Function   : Token name, Expr.Function function",
+                "Assign   : Token name, Expr value",
                 "Binary   : Expr left, Token operator, Expr right",
+                "Call     : Expr callee, Token paren, List<Expr> arguments",
                 "Grouping : Expr expression",
                 "Literal  : Object value",
-                "Unary    : Token operator, Expr right"
+                "Logical  : Expr left, Token operator, Expr right",
+                "Unary    : Token operator, Expr right",
+                "Variable : Token name"
+        ));
+
+        defineAst(outputDir, "Stmt", Arrays.asList(
+                "Block      : List<Stmt> statements",
+                "Break      : ",
+                "Expression : Expr expression",
+                "Function   : Token name, List<Token> params," +
+                            " List<Stmt> body",
+                "If         : Expr condition, Stmt thenBranch,"
+                + " Stmt elseBranch",
+                "Print      : Expr expression",
+                "Return     : Token keyword, Expr value",
+                "Var        : Token name, Expr initializer",
+                "While      : Expr condition, Stmt body"
         ));
     }
 
@@ -55,26 +76,39 @@ public class GenerateAst {
 
         for (String type : types) {
             String typeName = type.split(":")[0].trim();
-            writer.println("    R visit" + typeName + baseName + "(" +
-                    typeName + " " + baseName.toLowerCase() + ");");
+            writer.println("    R visit" + typeName + baseName + "("
+                    + typeName + " " + baseName.toLowerCase() + ");");
         }
 
         writer.println("  }");
     }
 
     private static void defineType(
-            PrintWriter writer, String baseName,
-            String className, String fieldList) {
-        writer.println("  static class " + className + " extends " +
-                baseName + " {");
+            PrintWriter writer,
+            String baseName,
+            String className,
+            String fieldList) {
+
+        writer.println("  static class " + className + " extends "
+                + baseName + " {");
 
         // Constructor.
         writer.println("    " + className + "(" + fieldList + ") {");
 
-        // Store parameters in fields.
-        String[] fields = fieldList.split(", ");
+        // Split the fields, unless this class has no fields.
+        String[] fields;
+
+        if (fieldList.trim().isEmpty()) {
+            fields = new String[0];
+        } else {
+            fields = fieldList.split(", ");
+        }
+
+        // Store constructor parameters in fields.
         for (String field : fields) {
-            String name = field.split(" ")[1];
+            String[] parts = field.trim().split("\\s+");
+            String name = parts[parts.length - 1];
+
             writer.println("      this." + name + " = " + name + ";");
         }
 
@@ -84,12 +118,13 @@ public class GenerateAst {
         writer.println();
         writer.println("    @Override");
         writer.println("    <R> R accept(Visitor<R> visitor) {");
-        writer.println("      return visitor.visit" +
-                className + baseName + "(this);");
+        writer.println("      return visitor.visit"
+                + className + baseName + "(this);");
         writer.println("    }");
 
         // Fields.
         writer.println();
+
         for (String field : fields) {
             writer.println("    final " + field + ";");
         }
