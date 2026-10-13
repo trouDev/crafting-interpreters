@@ -137,7 +137,6 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
         beginScope();
         scopes.peek().put("this", true);
-        scopes.peek().put("inner", true);
 
         for (Stmt.Function method : stmt.methods) {
             FunctionType declaration = FunctionType.METHOD;
@@ -159,6 +158,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitBreakStmt(Stmt.Break stmt) {
         // this may need more expanding
+        return null;
+    }
+
+    @Override
+    public Void visitContinueStmt(Stmt.Continue stmt) {
         return null;
     }
 
@@ -223,6 +227,15 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     public Void visitWhileStmt(Stmt.While stmt) {
         resolve(stmt.condition);
         resolve(stmt.body);
+        return null;
+    }
+
+    @Override
+    public Void visitForStmt(Stmt.For stmt) {
+        if (stmt.initializer != null) resolve(stmt.initializer);
+        if (stmt.condition != null) resolve(stmt.condition);
+        resolve(stmt.body);
+        if (stmt.increment != null) resolve(stmt.increment);
         return null;
     }
 

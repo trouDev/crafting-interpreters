@@ -12,6 +12,7 @@ class Interpreter implements Expr.Visitor<Object>,
     private final Map<Expr, Integer> locals = new HashMap<>();
     private static Object uninitialized = new Object();
     private static class Break extends RuntimeException {}
+    private static class Continue extends RuntimeException {}
 
     Interpreter() {
         globals.define("clock", new LoxCallable() {
@@ -49,6 +50,11 @@ class Interpreter implements Expr.Visitor<Object>,
     @Override
     public Void visitBreakStmt(Stmt.Break stmt) {
         throw new Break();
+    }
+
+    @Override
+    public Void visitContinueStmt(Stmt.Continue stmt) {
+        throw new Continue();
     }
 
     @Override
@@ -311,7 +317,35 @@ class Interpreter implements Expr.Visitor<Object>,
     public Void visitWhileStmt(Stmt.While stmt) {
         try {
             while (isTruthy(evaluate(stmt.condition))) {
-                execute(stmt.body);
+                try {
+                    execute(stmt.body);
+                } catch (Continue continueException) {
+                    // Start the next while iteration.
+                }
+            }
+        } catch (Break breakException) {
+            // Exit the loop.
+        }
+
+        return null;
+    }
+
+    @Override
+    public Void visitForStmt(Stmt.For stmt) {
+        if (stmt.initializer != null) execute(stmt.initializer);
+
+        try {
+            while (stmt.condition == null ||
+                    isTruthy(evaluate(stmt.condition))) {
+                try {
+                    execute(stmt.body);
+                } catch (Continue continueException) {
+                    // Continue still runs the for-loop increment below.
+                }
+
+                if (stmt.increment != null) {
+                    evaluate(stmt.increment);
+                }
             }
         } catch (Break breakException) {
             // Exit the loop.
