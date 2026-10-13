@@ -16,11 +16,11 @@ class LoxFunction implements Callable {
         this.declaration = declaration;
     }
 
-    LoxFunction bind(LoxInstance instance, LoxFunction inner) {
+    LoxFunction bind(LoxInstance instance) {
         Environment environment = new Environment(closure);
         environment.define("this", instance);
-        environment.define("inner", inner);
-        return new LoxFunction(declaration, environment, isInitializer);
+        return new LoxFunction(declaration, environment,
+                isInitializer);
     }
 
     @Override
