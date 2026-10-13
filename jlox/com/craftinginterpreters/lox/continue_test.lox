@@ -1,0 +1,13 @@
+print "while test";
+var i = 0;
+while (i < 5) {
+  i = i + 1;
+  if (i == 3) continue;
+  print i;
+}
+
+print "for test";
+for (var j = 0; j < 5; j = j + 1) {
+  if (j == 2) continue;
+  print j;
+}
