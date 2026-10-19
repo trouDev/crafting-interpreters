@@ -24,3 +24,7 @@ hs_err_pid*
 replay_pid*
 jlox/com/craftinginterpreters/lox/.idea/
 jlox/com/craftinginterpreters/lox/lox.iml
+clox/.idea/clox.iml
+clox/.idea/misc.xml
+clox/.idea/modules.xml
+clox/.idea/vcs.xml
