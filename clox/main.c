@@ -15,11 +15,11 @@ int main(int argc, const char* argv[]) {
   Chunk chunk;
   initChunk(&chunk);
 
-  writeConstant(&chunk, 1.2, 123);
-  writeConstant(&chunk, 3.4, 123);
-  writeConstant(&chunk, 2.0, 123);
-  writeChunk(&chunk, OP_MULTIPLY, 123);
-  writeChunk(&chunk, OP_ADD, 123);
+  writeConstant(&chunk, 1.0, 123);
+  for (int i = 1; i < 300; i++) {
+    writeConstant(&chunk, 1.0, 123);
+    writeChunk(&chunk, OP_ADD, 123);
+  }
   writeChunk(&chunk, OP_RETURN, 123);
 
   interpret(&chunk);

@@ -3,7 +3,7 @@
 
 #include "chunk.h"
 
-#define STACK_MAX 256
+#define STACK_INITIAL_CAPACITY 256
 
 typedef enum {
   INTERPRET_OK,
@@ -14,7 +14,8 @@ typedef enum {
 typedef struct {
   Chunk* chunk;
   uint8_t* ip;
-  Value stack[STACK_MAX];
+  int stackCapacity;
+  Value* stack;
   Value* stackTop;
 } VM;
 
