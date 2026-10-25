@@ -14,6 +14,15 @@ typedef enum
   OP_NEGATE,
   OP_RETURN,
   OP_POP,
+  OP_NOT,
+  OP_NIL,
+  OP_TRUE,
+  OP_FALSE,
+  OP_EQUAL,
+  OP_GREATER,
+  OP_LESS,
+  OP_JUMP,
+  OP_JUMP_IF_FALSE,
 } OpCode;
 
 typedef struct
