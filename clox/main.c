@@ -4,17 +4,16 @@
 int main(void)
 {
     char source[4096];
-    printf("Enter Lox expression: ");
-    if (!fgets(source, sizeof source, stdin))
-        return 0;
-    Chunk c;
-    initChunk(&c);
-    if (compile(source, &c))
+    initVM();
+    while (true)
     {
-        initVM();
-        interpret(&c);
-        freeVM();
+        printf("> ");
+        if (!fgets(source, sizeof source, stdin)) break;
+        Chunk chunk;
+        initChunk(&chunk);
+        if (compile(source, &chunk)) interpret(&chunk);
+        freeChunk(&chunk);
     }
-    freeChunk(&c);
+    freeVM();
     return 0;
 }

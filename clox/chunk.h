@@ -23,6 +23,9 @@ typedef enum
   OP_LESS,
   OP_JUMP,
   OP_JUMP_IF_FALSE,
+  OP_DEFINE_GLOBAL,
+  OP_GET_GLOBAL,
+  OP_SET_GLOBAL,
 } OpCode;
 
 typedef struct
