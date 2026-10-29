@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include <string.h>
 #include "vm.h"
+#include "memory.h"
 
 VM vm;
 
-void initVM(void) { vm.stackTop = vm.stack; }
-void freeVM(void) {}
+void initVM(void) { vm.stackTop = vm.stack; vm.objects = NULL; }
+void freeVM(void) { freeObjects(vm.objects); }
 
 static void push(Value value) { *vm.stackTop++ = value; }
 static Value pop(void) { return *--vm.stackTop; }
@@ -29,13 +31,27 @@ static InterpretResult run(void)
   push(NUMBER_VAL(a op b)); \
 } while (false)
 
+#define BINARY_STRING() do { \
+  ObjString *b = AS_STRING(pop()); \
+  ObjString *a = AS_STRING(pop()); \
+  int length = a->length + b->length; \
+  char *chars = ALLOCATE(char, length + 1); \
+  memcpy(chars, a->chars, a->length); \
+  memcpy(chars + a->length, b->chars, b->length); \
+  chars[length] = '\0'; \
+  push(OBJ_VAL(takeString(chars, length))); \
+} while (false)
+
   for (;;)
   {
     uint8_t instruction = READ_BYTE();
     switch (instruction)
     {
     case OP_CONSTANT: push(READ_CONSTANT()); break;
-    case OP_ADD: BINARY_NUMBER(+); break;
+    case OP_ADD:
+      if (IS_STRING(peek(0)) && IS_STRING(peek(1))) BINARY_STRING();
+      else BINARY_NUMBER(+);
+      break;
     case OP_SUBTRACT: BINARY_NUMBER(-); break;
     case OP_MULTIPLY: BINARY_NUMBER(*); break;
     case OP_DIVIDE: BINARY_NUMBER(/); break;
@@ -84,6 +100,7 @@ static InterpretResult run(void)
 #undef READ_SHORT
 #undef READ_CONSTANT
 #undef BINARY_NUMBER
+#undef BINARY_STRING
 }
 
 InterpretResult interpret(Chunk *chunk)

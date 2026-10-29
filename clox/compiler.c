@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "compiler.h"
 #include "scanner.h"
+#include "object.h"
 
 static Token current, previous;
 static bool errorFlag;
@@ -79,6 +80,15 @@ static void primary(void)
     double number = strtod(current.start, NULL);
     advanceToken();
     int constant = addConstant(out, NUMBER_VAL(number));
+    emitBytes(OP_CONSTANT, (uint8_t)constant);
+    return;
+  }
+  case TOKEN_STRING:
+  {
+    advanceToken();
+    int length = previous.length - 2;
+    ObjString *string = copyString(previous.start + 1, length);
+    int constant = addConstant(out, OBJ_VAL(string));
     emitBytes(OP_CONSTANT, (uint8_t)constant);
     return;
   }
