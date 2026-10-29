@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "memory.h"
 #include "object.h"
 
@@ -16,41 +17,45 @@ static uint32_t hashString(const char *key, int length)
   return hash;
 }
 
-static ObjString *allocateString(const char *chars, int length,
-                                 uint32_t hash)
+static ObjString *allocateString(char *chars, int length, uint32_t hash)
 {
-  ObjString *string = (ObjString *)reallocate(
-      NULL, 0, sizeof(ObjString) + (size_t)length + 1);
+  ObjString *string = ALLOCATE(ObjString, 1);
   string->obj.type = OBJ_STRING;
   string->obj.next = objects;
   objects = (Obj *)string;
   string->length = length;
+  string->chars = chars;
   string->hash = hash;
-  memcpy(string->chars, chars, length);
-  string->chars[length] = '\0';
   return string;
-}
-
-ObjString *copyString(const char *chars, int length)
-{
-  return allocateString(chars, length, hashString(chars, length));
 }
 
 ObjString *takeString(char *chars, int length)
 {
-  ObjString *string = allocateString(chars, length, hashString(chars, length));
-  FREE_ARRAY(char, chars, length + 1);
-  return string;
+  return allocateString(chars, length, hashString(chars, length));
 }
 
-void printObject(Value value) { printf("%s", AS_STRING(value)->chars); }
+ObjString *copyString(const char *chars, int length)
+{
+  char *heapChars = ALLOCATE(char, length + 1);
+  memcpy(heapChars, chars, length);
+  heapChars[length] = '\0';
+  return takeString(heapChars, length);
+}
+
+void printObject(Value value)
+{
+  ObjString *string = AS_STRING(value);
+  printf("%s", string->chars);
+}
 
 void freeObjects(Obj *object)
 {
   while (object != NULL)
   {
     Obj *next = object->next;
-    FREE(ObjString, (ObjString *)object);
+    ObjString *string = (ObjString *)object;
+    FREE_ARRAY(char, string->chars, string->length + 1);
+    FREE(ObjString, string);
     object = next;
   }
   objects = NULL;
