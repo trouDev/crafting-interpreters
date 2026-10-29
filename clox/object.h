@@ -3,23 +3,16 @@
 
 #include "value.h"
 
-typedef enum
-{
-  OBJ_STRING
-} ObjType;
+typedef enum { OBJ_STRING } ObjType;
 
-struct Obj
-{
-  ObjType type;
-  struct Obj *next;
-};
+struct Obj { ObjType type; struct Obj *next; };
 
 struct ObjString
 {
   Obj obj;
   int length;
-  char *chars;
   uint32_t hash;
+  char chars[];
 };
 
 ObjString *copyString(const char *chars, int length);
