@@ -14,6 +14,7 @@ static Chunk *out;
 static Local locals[UINT8_COUNT];
 static int localCount;
 static int scopeDepth;
+static int currentLoopStart = -1;
 
 static void advanceToken(void)
 {
@@ -209,6 +210,8 @@ static void ifStatement(void)
 static void whileStatement(void)
 {
   int loopStart = out->count;
+  int enclosingLoopStart = currentLoopStart;
+  currentLoopStart = loopStart;
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
   expression(0);
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
@@ -219,10 +222,12 @@ static void whileStatement(void)
   emitLoop(loopStart);
   patchJump(exitJump);
   emitByte(OP_POP);
+  currentLoopStart = enclosingLoopStart;
 }
 
 static void forStatement(void)
 {
+  int enclosingLoopStart = currentLoopStart;
   beginScope();
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
   if (current.type == TOKEN_SEMICOLON) advanceToken();
@@ -253,10 +258,12 @@ static void forStatement(void)
   }
   else advanceToken();
 
+  currentLoopStart = loopStart;
   statement();
   emitLoop(loopStart);
   if (exitJump != -1) { patchJump(exitJump); emitByte(OP_POP); }
   endScope();
+  currentLoopStart = enclosingLoopStart;
 }
 
 static void varDeclaration(void)
@@ -284,6 +291,17 @@ static void statement(void)
   else if (current.type == TOKEN_IF) { advanceToken(); ifStatement(); }
   else if (current.type == TOKEN_WHILE) { advanceToken(); whileStatement(); }
   else if (current.type == TOKEN_FOR) { advanceToken(); forStatement(); }
+  else if (current.type == TOKEN_CONTINUE)
+  {
+    advanceToken();
+    consume(TOKEN_SEMICOLON, "Expect ';' after 'continue'.");
+    if (currentLoopStart == -1)
+    {
+      fprintf(stderr, "'continue' must be inside a loop.\n");
+      errorFlag = true;
+    }
+    else emitLoop(currentLoopStart);
+  }
   else
   {
     expression(0); consume(TOKEN_SEMICOLON, "Expect ';' after expression."); emitByte(OP_POP);

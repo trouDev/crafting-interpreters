@@ -65,6 +65,8 @@ static TokenType idType()
     case 'a':
         return keyword(2, "nd", TOKEN_AND);
     case 'c':
+        if (current - start > 1 && start[1] == 'o')
+            return keyword(7, "ontinue", TOKEN_CONTINUE);
         return keyword(4, "lass", TOKEN_CLASS);
     case 'e':
         return keyword(3, "lse", TOKEN_ELSE);
