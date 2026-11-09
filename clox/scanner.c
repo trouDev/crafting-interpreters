@@ -51,7 +51,13 @@ static void skip()
             break;
     }
 }
-static TokenType keyword(int n, const char *s, TokenType t) { return current - start == n + 1 && memcmp(start + 1, s, n) == 0 ? t : TOKEN_IDENTIFIER; }
+static TokenType keyword(int n, const char *s, TokenType t)
+{
+    return current - start == n + 1 &&
+                   memcmp(start + 1, s, n) == 0
+               ? t
+               : TOKEN_IDENTIFIER;
+}
 static TokenType idType()
 {
     switch (start[0])
