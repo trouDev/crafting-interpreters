@@ -1,0 +1,7 @@
+const globalValue = 10;
+globalValue = 11;
+
+{
+  const localValue = 20;
+  localValue = 21;
+}

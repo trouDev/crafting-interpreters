@@ -20,6 +20,8 @@ typedef struct
   uint8_t *ip;
   Value stack[STACK_MAX];
   Value *stackTop;
+  Value switchStack[STACK_MAX];
+  int switchTop;
   Obj *objects;
   Table globals;
 } VM;

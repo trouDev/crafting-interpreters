@@ -66,8 +66,16 @@ static TokenType idType()
         return keyword(2, "nd", TOKEN_AND);
     case 'c':
         if (current - start > 1 && start[1] == 'o')
-            return keyword(7, "ontinue", TOKEN_CONTINUE);
+        {
+            if (keyword(7, "ontinue", TOKEN_CONTINUE) != TOKEN_IDENTIFIER)
+                return TOKEN_CONTINUE;
+            return keyword(4, "onst", TOKEN_CONST);
+        }
+        if (current - start > 1 && start[1] == 'a')
+            return keyword(3, "ase", TOKEN_CASE);
         return keyword(4, "lass", TOKEN_CLASS);
+    case 'd':
+        return keyword(6, "efault", TOKEN_DEFAULT);
     case 'e':
         return keyword(3, "lse", TOKEN_ELSE);
     case 'i':
@@ -81,7 +89,9 @@ static TokenType idType()
     case 'r':
         return keyword(5, "eturn", TOKEN_RETURN);
     case 's':
-        return keyword(4, "uper", TOKEN_SUPER);
+        if (current - start > 1 && start[1] == 'u')
+            return keyword(4, "uper", TOKEN_SUPER);
+        return keyword(5, "witch", TOKEN_SWITCH);
     case 'v':
         return keyword(2, "ar", TOKEN_VAR);
     case 'w':
@@ -92,9 +102,9 @@ static TokenType idType()
             if (start[1] == 'a')
                 return keyword(4, "alse", TOKEN_FALSE);
             if (start[1] == 'o')
-                return keyword(3, "or", TOKEN_FOR);
+                return keyword(2, "or", TOKEN_FOR);
             if (start[1] == 'u')
-                return keyword(3, "un", TOKEN_FUN);
+                return keyword(2, "un", TOKEN_FUN);
         }
         break;
     case 't':
@@ -106,6 +116,8 @@ static TokenType idType()
                 return keyword(3, "rue", TOKEN_TRUE);
         }
         break;
+    case 'u':
+        return keyword(5, "nless", TOKEN_UNLESS);
     }
     return TOKEN_IDENTIFIER;
 }

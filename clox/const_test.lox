@@ -1,0 +1,7 @@
+const globalValue = 10;
+print globalValue;
+
+{
+  const localValue = 20;
+  print localValue;
+}

@@ -7,7 +7,12 @@
 
 #define UINT8_COUNT 256
 
-typedef struct { Token name; int depth; } Local;
+typedef struct
+{
+  Token name;
+  int depth;
+  bool isConst;
+} Local;
 static Token current, previous;
 static bool errorFlag;
 static Chunk *out;
@@ -15,6 +20,12 @@ static Local locals[UINT8_COUNT];
 static int localCount;
 static int scopeDepth;
 static int currentLoopStart = -1;
+static int currentLoopScopeDepth = 0;
+static int currentLoopSwitchDepth = 0;
+static int switchDepth = 0;
+static Token *constGlobals;
+static int constGlobalCount;
+static int constGlobalCapacity;
 
 static void advanceToken(void)
 {
@@ -80,11 +91,12 @@ static int resolveLocal(Token *name)
   return -1;
 }
 
-static void addLocal(Token name)
+static void addLocal(Token name, bool isConst)
 {
   if (localCount == UINT8_COUNT) { errorFlag = true; return; }
   locals[localCount].name = name;
   locals[localCount].depth = -1;
+  locals[localCount].isConst = isConst;
   localCount++;
 }
 
@@ -94,20 +106,80 @@ static void markInitialized(void)
   locals[localCount - 1].depth = scopeDepth;
 }
 
-static void declareVariable(Token name)
+static void declareVariable(Token name, bool isConst)
 {
   if (scopeDepth == 0) return;
-  addLocal(name);
+  addLocal(name, isConst);
 }
 
-static void namedVariable(Token name)
+static bool isConstGlobal(Token *name)
+{
+  for (int i = 0; i < constGlobalCount; i++)
+  {
+    if (identifiersEqual(name, &constGlobals[i])) return true;
+  }
+  return false;
+}
+
+static void rememberConstGlobal(Token name)
+{
+  if (constGlobalCount == constGlobalCapacity)
+  {
+    constGlobalCapacity = constGlobalCapacity < 8 ? 8 : constGlobalCapacity * 2;
+    constGlobals = realloc(constGlobals,
+                           sizeof(Token) * constGlobalCapacity);
+    if (constGlobals == NULL) exit(1);
+  }
+  constGlobals[constGlobalCount++] = name;
+}
+
+static void namedVariable(Token name, bool assign)
 {
   int local = resolveLocal(&name);
-  if (local != -1) emitBytes(OP_GET_LOCAL, (uint8_t)local);
-  else emitBytes(OP_GET_GLOBAL, identifierConstant(&name));
+  if (local != -1)
+  {
+    if (assign)
+    {
+      if (locals[local].isConst)
+      {
+        fprintf(stderr, "Cannot assign to a const variable '%.*s'.\n",
+                name.length, name.start);
+        errorFlag = true;
+        return;
+      }
+      emitBytes(OP_SET_LOCAL, (uint8_t)local);
+    }
+    else emitBytes(OP_GET_LOCAL, (uint8_t)local);
+    return;
+  }
+
+  if (assign && isConstGlobal(&name))
+  {
+    fprintf(stderr, "Cannot assign to a const variable '%.*s'.\n",
+            name.length, name.start);
+    errorFlag = true;
+    return;
+  }
+
+  emitBytes(assign ? OP_SET_GLOBAL : OP_GET_GLOBAL, identifierConstant(&name));
 }
 
 static void expression(int minimum);
+
+static void emitLoopCleanup(void)
+{
+  for (int i = localCount - 1;
+       i >= 0 && locals[i].depth > currentLoopScopeDepth;
+       i--)
+  {
+    emitByte(OP_POP);
+  }
+
+  for (int i = switchDepth; i > currentLoopSwitchDepth; i--)
+  {
+    emitByte(OP_SWITCH_POP);
+  }
+}
 
 static int precedence(TokenType type)
 {
@@ -131,7 +203,19 @@ static void primary(void)
   case TOKEN_TRUE: advanceToken(); emitByte(OP_TRUE); return;
   case TOKEN_FALSE: advanceToken(); emitByte(OP_FALSE); return;
   case TOKEN_NIL: advanceToken(); emitByte(OP_NIL); return;
-  case TOKEN_IDENTIFIER: { Token name = current; advanceToken(); namedVariable(name); return; }
+  case TOKEN_IDENTIFIER:
+  {
+    Token name = current;
+    advanceToken();
+    if (current.type == TOKEN_EQUAL)
+    {
+      advanceToken();
+      expression(0);
+      namedVariable(name, true);
+    }
+    else namedVariable(name, false);
+    return;
+  }
   case TOKEN_LEFT_PAREN: advanceToken(); expression(0); consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression."); return;
   case TOKEN_MINUS: advanceToken(); expression(4); emitByte(OP_NEGATE); return;
   case TOKEN_BANG: advanceToken(); expression(4); emitByte(OP_NOT); return;
@@ -179,7 +263,7 @@ static void endScope(void)
 
 static void declaration(void);
 static void statement(void);
-static void varDeclaration(void);
+static void varDeclaration(bool isConst);
 
 static void block(void)
 {
@@ -211,10 +295,14 @@ static void whileStatement(void)
 {
   int loopStart = out->count;
   int enclosingLoopStart = currentLoopStart;
+  int enclosingLoopScopeDepth = currentLoopScopeDepth;
+  int enclosingLoopSwitchDepth = currentLoopSwitchDepth;
   currentLoopStart = loopStart;
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
   expression(0);
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+  currentLoopScopeDepth = scopeDepth;
+  currentLoopSwitchDepth = switchDepth;
 
   int exitJump = emitJump(OP_JUMP_IF_FALSE);
   emitByte(OP_POP);
@@ -223,15 +311,20 @@ static void whileStatement(void)
   patchJump(exitJump);
   emitByte(OP_POP);
   currentLoopStart = enclosingLoopStart;
+  currentLoopScopeDepth = enclosingLoopScopeDepth;
+  currentLoopSwitchDepth = enclosingLoopSwitchDepth;
 }
 
 static void forStatement(void)
 {
   int enclosingLoopStart = currentLoopStart;
+  int enclosingLoopScopeDepth = currentLoopScopeDepth;
+  int enclosingLoopSwitchDepth = currentLoopSwitchDepth;
   beginScope();
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
   if (current.type == TOKEN_SEMICOLON) advanceToken();
-  else if (current.type == TOKEN_VAR) { advanceToken(); varDeclaration(); }
+  else if (current.type == TOKEN_VAR) { advanceToken(); varDeclaration(false); }
+  else if (current.type == TOKEN_CONST) { advanceToken(); varDeclaration(true); }
   else { expression(0); consume(TOKEN_SEMICOLON, "Expect ';'."); emitByte(OP_POP); }
 
   int loopStart = out->count;
@@ -259,23 +352,149 @@ static void forStatement(void)
   else advanceToken();
 
   currentLoopStart = loopStart;
+  currentLoopScopeDepth = scopeDepth;
+  currentLoopSwitchDepth = switchDepth;
   statement();
   emitLoop(loopStart);
   if (exitJump != -1) { patchJump(exitJump); emitByte(OP_POP); }
   endScope();
   currentLoopStart = enclosingLoopStart;
+  currentLoopScopeDepth = enclosingLoopScopeDepth;
+  currentLoopSwitchDepth = enclosingLoopSwitchDepth;
 }
 
-static void varDeclaration(void)
+static void varDeclaration(bool isConst)
 {
   consume(TOKEN_IDENTIFIER, "Expect variable name.");
   Token name = previous;
-  declareVariable(name);
+  declareVariable(name, isConst);
   if (current.type == TOKEN_EQUAL) { advanceToken(); expression(0); }
+  else if (isConst)
+  {
+    fprintf(stderr, "A const variable must have an initializer.\n");
+    errorFlag = true;
+    emitByte(OP_NIL);
+  }
   else emitByte(OP_NIL);
   consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
   if (scopeDepth > 0) markInitialized();
-  else emitBytes(OP_DEFINE_GLOBAL, identifierConstant(&name));
+  else
+  {
+    if (isConst) rememberConstGlobal(name);
+    emitBytes(OP_DEFINE_GLOBAL, identifierConstant(&name));
+  }
+}
+
+static bool switchBoundary(void)
+{
+  return current.type == TOKEN_CASE ||
+         current.type == TOKEN_DEFAULT ||
+         current.type == TOKEN_RIGHT_BRACE ||
+         current.type == TOKEN_EOF;
+}
+
+static void switchStatement(void)
+{
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
+  expression(0);
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after switch value.");
+  consume(TOKEN_LEFT_BRACE, "Expect '{' before switch cases.");
+
+  emitByte(OP_SWITCH_PUSH);
+  switchDepth++;
+
+  int *endJumps = NULL;
+  int endJumpCount = 0;
+  int endJumpCapacity = 0;
+  int defaultJump = -1;
+  bool sawDefault = false;
+
+  while (current.type != TOKEN_RIGHT_BRACE && current.type != TOKEN_EOF)
+  {
+    if (current.type == TOKEN_CASE)
+    {
+      if (sawDefault)
+      {
+        fprintf(stderr, "A case cannot appear after default.\n");
+        errorFlag = true;
+      }
+      advanceToken();
+      emitByte(OP_SWITCH_GET);
+      expression(0);
+      consume(TOKEN_COLON, "Expect ':' after case value.");
+      emitByte(OP_EQUAL);
+
+      int nextCase = emitJump(OP_JUMP_IF_FALSE);
+      emitByte(OP_POP);
+
+      beginScope();
+      while (!switchBoundary()) declaration();
+      endScope();
+
+      if (endJumpCount == endJumpCapacity)
+      {
+        endJumpCapacity = endJumpCapacity < 8 ? 8 : endJumpCapacity * 2;
+        endJumps = realloc(endJumps, sizeof(int) * endJumpCapacity);
+        if (endJumps == NULL) exit(1);
+      }
+      endJumps[endJumpCount++] = emitJump(OP_JUMP);
+
+      patchJump(nextCase);
+      emitByte(OP_POP);
+    }
+    else if (current.type == TOKEN_DEFAULT)
+    {
+      if (sawDefault)
+      {
+        fprintf(stderr, "Only one default case is allowed.\n");
+        errorFlag = true;
+      }
+      sawDefault = true;
+      advanceToken();
+      consume(TOKEN_COLON, "Expect ':' after default.");
+
+      // The default path is reached only after all case comparisons failed.
+      emitByte(OP_SWITCH_POP);
+      switchDepth--;
+      beginScope();
+      while (!switchBoundary()) declaration();
+      endScope();
+      switchDepth++;
+      defaultJump = emitJump(OP_JUMP);
+    }
+    else
+    {
+      fprintf(stderr, "Expect 'case' or 'default' in switch.\n");
+      errorFlag = true;
+      advanceToken();
+    }
+  }
+
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after switch.");
+
+  // A matching case, or a switch without a default, reaches this cleanup.
+  for (int i = 0; i < endJumpCount; i++) patchJump(endJumps[i]);
+  emitByte(OP_SWITCH_POP);
+  if (defaultJump != -1) patchJump(defaultJump);
+  free(endJumps);
+  switchDepth--;
+}
+
+// Novel feature for Challenge 3: unless runs its body when the condition is false.
+static void unlessStatement(void)
+{
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'unless'.");
+  expression(0);
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+  int falseJump = emitJump(OP_JUMP_IF_FALSE);
+  emitByte(OP_POP);
+  int endJump = emitJump(OP_JUMP);
+
+  patchJump(falseJump);
+  emitByte(OP_POP);
+  statement();
+  patchJump(endJump);
 }
 
 static void statement(void)
@@ -291,6 +510,8 @@ static void statement(void)
   else if (current.type == TOKEN_IF) { advanceToken(); ifStatement(); }
   else if (current.type == TOKEN_WHILE) { advanceToken(); whileStatement(); }
   else if (current.type == TOKEN_FOR) { advanceToken(); forStatement(); }
+  else if (current.type == TOKEN_SWITCH) { advanceToken(); switchStatement(); }
+  else if (current.type == TOKEN_UNLESS) { advanceToken(); unlessStatement(); }
   else if (current.type == TOKEN_CONTINUE)
   {
     advanceToken();
@@ -300,7 +521,11 @@ static void statement(void)
       fprintf(stderr, "'continue' must be inside a loop.\n");
       errorFlag = true;
     }
-    else emitLoop(currentLoopStart);
+    else
+    {
+      emitLoopCleanup();
+      emitLoop(currentLoopStart);
+    }
   }
   else
   {
@@ -310,14 +535,16 @@ static void statement(void)
 
 static void declaration(void)
 {
-  if (current.type == TOKEN_VAR) { advanceToken(); varDeclaration(); }
+  if (current.type == TOKEN_VAR) { advanceToken(); varDeclaration(false); }
+  else if (current.type == TOKEN_CONST) { advanceToken(); varDeclaration(true); }
   else statement();
 }
 
 bool compile(const char *source, Chunk *chunk)
 {
   initScanner(source); out = chunk; errorFlag = false;
-  localCount = 0; scopeDepth = 0; current = scanToken();
+  localCount = 0; scopeDepth = 0; constGlobalCount = 0;
+  current = scanToken();
   while (current.type != TOKEN_EOF) declaration();
   emitByte(OP_NIL); emitByte(OP_RETURN);
   return !errorFlag;

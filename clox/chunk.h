@@ -30,6 +30,9 @@ typedef enum
   OP_SET_LOCAL,
   OP_PRINT,
   OP_LOOP,
+  OP_SWITCH_PUSH,
+  OP_SWITCH_GET,
+  OP_SWITCH_POP,
 } OpCode;
 
 typedef struct

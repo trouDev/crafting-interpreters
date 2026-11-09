@@ -8,6 +8,7 @@ VM vm;
 void initVM(void)
 {
   vm.stackTop = vm.stack;
+  vm.switchTop = 0;
   vm.objects = NULL;
   initTable(&vm.globals);
 }
@@ -24,7 +25,11 @@ static Value peek(int distance) { return vm.stackTop[-1 - distance]; }
 
 static bool isFalsey(Value value)
 {
-  return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+  if (IS_NIL(value)) return true;
+  if (IS_BOOL(value)) return !AS_BOOL(value);
+  // This compact clox variant represents comparisons as numeric 0/1 values.
+  if (IS_NUMBER(value)) return AS_NUMBER(value) == 0;
+  return false;
 }
 
 static InterpretResult run(void)
@@ -132,6 +137,9 @@ static InterpretResult run(void)
     }
     case OP_GET_LOCAL: push(vm.stack[READ_BYTE()]); break;
     case OP_SET_LOCAL: vm.stack[READ_BYTE()] = peek(0); break;
+    case OP_SWITCH_PUSH: vm.switchStack[vm.switchTop++] = pop(); break;
+    case OP_SWITCH_GET: push(vm.switchStack[vm.switchTop - 1]); break;
+    case OP_SWITCH_POP: vm.switchTop--; break;
     case OP_PRINT: printValue(pop()); printf("\n"); break;
     case OP_LOOP: { uint16_t offset = READ_SHORT(); vm.ip -= offset; break; }
     case OP_POP: pop(); break;
