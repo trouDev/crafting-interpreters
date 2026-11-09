@@ -133,6 +133,7 @@ static InterpretResult run(void)
     case OP_GET_LOCAL: push(vm.stack[READ_BYTE()]); break;
     case OP_SET_LOCAL: vm.stack[READ_BYTE()] = peek(0); break;
     case OP_PRINT: printValue(pop()); printf("\n"); break;
+    case OP_LOOP: { uint16_t offset = READ_SHORT(); vm.ip -= offset; break; }
     case OP_POP: pop(); break;
     case OP_RETURN:
       printValue(pop()); printf("\n"); return INTERPRET_OK;

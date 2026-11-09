@@ -31,6 +31,31 @@ static void consume(TokenType type, const char *message)
 
 static void emitByte(uint8_t byte) { writeChunk(out, byte, previous.line); }
 static void emitBytes(uint8_t a, uint8_t b) { emitByte(a); emitByte(b); }
+
+static int emitJump(uint8_t instruction)
+{
+  emitByte(instruction);
+  emitByte(0xff);
+  emitByte(0xff);
+  return out->count - 2;
+}
+
+static void patchJump(int offset)
+{
+  int jump = out->count - offset - 2;
+  if (jump > UINT16_MAX) errorFlag = true;
+  out->code[offset] = (uint8_t)((jump >> 8) & 0xff);
+  out->code[offset + 1] = (uint8_t)(jump & 0xff);
+}
+
+static void emitLoop(int loopStart)
+{
+  emitByte(OP_LOOP);
+  int offset = out->count - loopStart + 2;
+  if (offset > UINT16_MAX) errorFlag = true;
+  emitByte((uint8_t)((offset >> 8) & 0xff));
+  emitByte((uint8_t)(offset & 0xff));
+}
 static int makeConstant(Value value) { return addConstant(out, value); }
 static void emitConstant(Value value) { emitBytes(OP_CONSTANT, (uint8_t)makeConstant(value)); }
 
@@ -152,6 +177,8 @@ static void endScope(void)
 }
 
 static void declaration(void);
+static void statement(void);
+static void varDeclaration(void);
 
 static void block(void)
 {
@@ -159,6 +186,76 @@ static void block(void)
   while (current.type != TOKEN_RIGHT_BRACE && current.type != TOKEN_EOF)
     declaration();
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+  endScope();
+}
+
+static void ifStatement(void)
+{
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+  expression(0);
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+  int thenJump = emitJump(OP_JUMP_IF_FALSE);
+  emitByte(OP_POP);
+  statement();
+
+  int elseJump = emitJump(OP_JUMP);
+  patchJump(thenJump);
+  emitByte(OP_POP);
+  if (current.type == TOKEN_ELSE) { advanceToken(); statement(); }
+  patchJump(elseJump);
+}
+
+static void whileStatement(void)
+{
+  int loopStart = out->count;
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+  expression(0);
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+
+  int exitJump = emitJump(OP_JUMP_IF_FALSE);
+  emitByte(OP_POP);
+  statement();
+  emitLoop(loopStart);
+  patchJump(exitJump);
+  emitByte(OP_POP);
+}
+
+static void forStatement(void)
+{
+  beginScope();
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+  if (current.type == TOKEN_SEMICOLON) advanceToken();
+  else if (current.type == TOKEN_VAR) { advanceToken(); varDeclaration(); }
+  else { expression(0); consume(TOKEN_SEMICOLON, "Expect ';'."); emitByte(OP_POP); }
+
+  int loopStart = out->count;
+  int exitJump = -1;
+  if (current.type != TOKEN_SEMICOLON)
+  {
+    expression(0);
+    consume(TOKEN_SEMICOLON, "Expect ';'.");
+    exitJump = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP);
+  }
+  else advanceToken();
+
+  if (current.type != TOKEN_RIGHT_PAREN)
+  {
+    int bodyJump = emitJump(OP_JUMP);
+    int incrementStart = out->count;
+    expression(0);
+    emitByte(OP_POP);
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+    emitLoop(loopStart);
+    loopStart = incrementStart;
+    patchJump(bodyJump);
+  }
+  else advanceToken();
+
+  statement();
+  emitLoop(loopStart);
+  if (exitJump != -1) { patchJump(exitJump); emitByte(OP_POP); }
   endScope();
 }
 
@@ -184,6 +281,9 @@ static void statement(void)
   {
     advanceToken(); block();
   }
+  else if (current.type == TOKEN_IF) { advanceToken(); ifStatement(); }
+  else if (current.type == TOKEN_WHILE) { advanceToken(); whileStatement(); }
+  else if (current.type == TOKEN_FOR) { advanceToken(); forStatement(); }
   else
   {
     expression(0); consume(TOKEN_SEMICOLON, "Expect ';' after expression."); emitByte(OP_POP);
