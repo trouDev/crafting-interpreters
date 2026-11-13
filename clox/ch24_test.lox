@@ -1,19 +1,11 @@
-var value = 2;
-switch (value) {
-  case 1:
-    print 10;
-  case 2:
-    print 20;
-  default:
-    print 30;
+fun greet(name) {
+  print "Hello, " + name;
 }
 
-var i = 0;
-while (i < 4) {
-  var temporary = i;
-  i = i + 1;
-  if (i == 2) continue;
-  print temporary;
+fun add(a, b) {
+  return a + b;
 }
 
-unless (false) print 40;
+greet("Adam");
+print add(2, 3);
+print clock() >= 0;

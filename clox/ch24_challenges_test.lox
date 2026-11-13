@@ -1,0 +1,11 @@
+fun square(value) {
+  return value * value;
+}
+
+print square(6);
+print abs(-12);
+print sqrt(81);
+print pow(2, 5);
+print typeOf("hello");
+print typeOf(nil);
+print clock() >= 0;

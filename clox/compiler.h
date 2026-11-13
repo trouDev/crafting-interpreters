@@ -1,6 +1,9 @@
 #ifndef clox_compiler_h
 #define clox_compiler_h
-#include <stdbool.h>
-#include "chunk.h"
-bool compile(const char *source, Chunk *chunk);
+
+#include "object.h"
+#include "vm.h"
+
+ObjFunction* compile(const char* source);
+
 #endif
