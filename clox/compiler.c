@@ -4,6 +4,7 @@
 #include "compiler.h"
 #include "scanner.h"
 #include "object.h"
+#include "vm.h"
 
 #define UINT8_COUNT 256
 
@@ -542,7 +543,7 @@ static void declaration(void)
 
 bool compile(const char *source, Chunk *chunk)
 {
-  initScanner(source); out = chunk; errorFlag = false;
+  initScanner(source); out = chunk; vm.chunk = chunk; errorFlag = false;
   localCount = 0; scopeDepth = 0; constGlobalCount = 0;
   current = scanToken();
   while (current.type != TOKEN_EOF) declaration();

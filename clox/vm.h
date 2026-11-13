@@ -24,6 +24,8 @@ typedef struct
   int switchTop;
   Obj *objects;
   Table globals;
+  size_t bytesAllocated;
+  size_t nextGC;
 } VM;
 
 extern VM vm;

@@ -3,8 +3,7 @@
 
 #include "memory.h"
 #include "object.h"
-
-static Obj *objects;
+#include "vm.h"
 
 static uint32_t hashString(const char *key, int length)
 {
@@ -21,8 +20,9 @@ static ObjString *allocateString(char *chars, int length, uint32_t hash)
 {
   ObjString *string = ALLOCATE(ObjString, 1);
   string->obj.type = OBJ_STRING;
-  string->obj.next = objects;
-  objects = (Obj *)string;
+  string->obj.isMarked = false;
+  string->obj.next = vm.objects;
+  vm.objects = (Obj *)string;
   string->length = length;
   string->chars = chars;
   string->hash = hash;
@@ -58,5 +58,5 @@ void freeObjects(Obj *object)
     FREE(ObjString, string);
     object = next;
   }
-  objects = NULL;
+  vm.objects = NULL;
 }

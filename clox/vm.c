@@ -10,6 +10,8 @@ void initVM(void)
   vm.stackTop = vm.stack;
   vm.switchTop = 0;
   vm.objects = NULL;
+  vm.bytesAllocated = 0;
+  vm.nextGC = 1024 * 1024;
   initTable(&vm.globals);
 }
 
